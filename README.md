@@ -1,4 +1,4 @@
-# Google Maps 3D Tiles Downloader — **Fast Node.js**
+# Google Photorealistic 3D Tiles Downloader — **Fast Node.js**
 
 Download Google Maps 3D Tiles as `.glb` files around a lat/lng + radius, **then recenter, align “Up”, and bake transforms** so the glTF nodes end up with translation-only. This is a from-scratch Node.js translation of Lukas Lao Beyer’s original Python tool, with a focus on speed, reliability, and drop‑in output for DCC tools (Blender, etc.).
 
