@@ -44,6 +44,8 @@ node download_and_rotate.js \
 --radius    (number, required) Radius in meters
 --out       (string, required) Output directory
 --parallel  (number, default: 10) Parallel download concurrency
+--debug-download (boolean, default: false)
+            Also save <sha>_downloaded.glb with the raw, pre-rotation data
 --origin    (three numbers) ECEF origin x y z. Example:
             --origin 3383551.7246 2624125.9925 -4722209.0962
 --help
@@ -108,6 +110,7 @@ const { rotateGlbBuffer } = require('./rotateUtils.cjs');
 ## Output details
 
 * **Filenames:** `<sha1>.glb`, where the hash is computed from the tile URL **without** `key`/`session` so it’s stable and cacheable.
+  * When `--debug-download` is on, you’ll also see `<sha1>_downloaded.glb` storing the unmodified tile.
 * **GLB contents:** Root nodes have translation only (rotation = identity, scale = 1). Geometry bounds are updated.
 * **Logs:**
 

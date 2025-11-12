@@ -201,10 +201,11 @@ async function fetchTileSet(tilesetUrl, regionSphere, sessionRef, apiKey, result
 // ──────────────────────────────────────────────────────────────────────────────
 // Download → rotate via rotateUtils → write
 // ──────────────────────────────────────────────────────────────────────────────
-async function downloadRotateWrite(glbUrl, outDir, originRef) {
+async function downloadRotateWrite(glbUrl, outDir, originRef, debugDownload = false) {
   const tileId = tileIdentifierFromUrl(glbUrl);
   const hash = crypto.createHash('sha1').update(tileId).digest('hex');
   const outGlbPath = path.join(outDir, `${hash}.glb`);
+  const rawGlbPath = debugDownload ? path.join(outDir, `${hash}_downloaded.glb`) : null;
 
   // Skip if already exists, but still try to log translation
   if (fs.existsSync(outGlbPath)) {
@@ -230,6 +231,11 @@ async function downloadRotateWrite(glbUrl, outDir, originRef) {
   } catch (err) {
     console.error(`[ERROR] Could not fetch GLB from ${glbUrl}`, err?.response?.status || err?.message || err);
     return { fileName: null, updatedOrigin: originRef.value };
+  }
+
+  if (debugDownload && rawGlbPath) {
+    fs.writeFileSync(rawGlbPath, inBuf);
+    console.log(`[DEBUG] Saved raw tile => ${path.basename(rawGlbPath)}`);
   }
 
   // Rotate/bake with shared origin (adopt from first tile if null)
@@ -271,6 +277,11 @@ async function downloadRotateWrite(glbUrl, outDir, originRef) {
     .option('radius', { type: 'number', demandOption: true })
     .option('out', { type: 'string', demandOption: true })
     .option('parallel', { type: 'number', default: 10 })
+    .option('debug-download', {
+      type: 'boolean',
+      default: false,
+      description: 'Write an additional <sha>_downloaded.glb with the raw (pre-rotation) data',
+    })
     .option('origin', {
       type: 'array',
       description: 'Optional origin as three numbers: x y z. E.g. --origin 3383551.7246 2624125.9925 -4722209.0962',
@@ -278,7 +289,16 @@ async function downloadRotateWrite(glbUrl, outDir, originRef) {
     .help()
     .argv;
 
-  const { key, lat, lng, radius, out: outDir, parallel, origin } = argv;
+  const {
+    key,
+    lat,
+    lng,
+    radius,
+    out: outDir,
+    parallel,
+    origin,
+    debugDownload,
+  } = argv;
 
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
@@ -341,7 +361,7 @@ async function downloadRotateWrite(glbUrl, outDir, originRef) {
   // If origin not provided, adopt from the first processed tile
   const first = glbResults.shift();
   if (first) {
-    const r = await downloadRotateWrite(first, outDir, originRef);
+    const r = await downloadRotateWrite(first, outDir, originRef, debugDownload);
     if (r.fileName) downloadedTiles.push(r.fileName);
   }
 
@@ -349,7 +369,7 @@ async function downloadRotateWrite(glbUrl, outDir, originRef) {
   const downloadQueue = new PQueue({ concurrency: parallel });
   for (const url of glbResults) {
     downloadQueue.add(async () => {
-      const r = await downloadRotateWrite(url, outDir, originRef);
+      const r = await downloadRotateWrite(url, outDir, originRef, debugDownload);
       if (r.fileName) downloadedTiles.push(r.fileName);
     });
   }
